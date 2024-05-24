@@ -7,3 +7,7 @@
 s_array parser(char* stream) {
   
 }
+
+int main() {
+  return 0;
+}
