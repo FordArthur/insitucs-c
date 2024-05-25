@@ -6,14 +6,13 @@
 #include "vec.h"
 
 typedef enum Types {
-  EXP,
-  VAR,
-  FUNC,
-  NUM,
-  STR,
-  VEC,
-// DICT,
-// CLO
+  Expression,
+  Function,
+  Number,
+  String,
+  Vector,
+// Dictionary,
+// Closure
 } Types;
 
 typedef struct _InsiType InsiType;

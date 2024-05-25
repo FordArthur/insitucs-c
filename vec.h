@@ -1,6 +1,8 @@
 #ifndef INSITUCS_VECTOR_HEADER
 #define INSITUCS_VECTOR_HEADER
 
+#include <stdlib.h> // may (?) cause problems
+
 typedef struct Vector_Header {
   unsigned int obj_size;
   unsigned int capacity;
@@ -11,6 +13,7 @@ void* _new_vector(unsigned int obj_size, unsigned int capacity);
 vect_h* _get_header(void* vect);
 
 #define new_vector(T) _new_vector(sizeof(T), CAPACITY)
+#define new_vector_with_capacity(T, c) _new_vector(sizeof(T), c)
 #define CAPACITY 16
 
 #define sizeof_vector(v) _get_header(v)->size
@@ -24,5 +27,7 @@ vect_h* _get_header(void* vect);
     v = (void*) (header + 1);\
   }\
 }\
+
+#define for_each(v) for(int i = 0, m = _get_header(v)->size; i < m; i++)
 
 #endif // !INSITUCS_VECTOR_HEADER
