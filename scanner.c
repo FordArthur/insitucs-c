@@ -1,10 +1,11 @@
+#include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
 #include "vec.h"
 #include "scanner.h"
 #include <stdio.h>
+#define nsyms 4
 
-#define EOFval 26
 #define mktok(t, l, token) (Scanned) { .is_ok = true, .line = line, .index = index, .res.tok.type = t, .res.tok.length = l, .res.tok.tok = token }
 #define throwerr(e) (Scanned) { .is_ok = false, .line = line, .index = index, .res.err = e }
 
@@ -18,6 +19,15 @@ static unsigned int _INDEX = 0; // Will keep track of the position as we are par
 
 static bool _IS_PEAKED_TOKEN = false;
 static Scanned _PEAKED_TOKEN;
+
+static const char symtablelike[nsyms][9] = {"function", "if", "match", "for"};
+
+// This really should be implemented as a hashtable but whatever
+static inline TokenType selectfromidents(const char* potsym) {
+  int i = nsyms - 1;
+  for (; i >= 0 && strcmp(potsym, symtablelike[i]); i--);
+  return FUNCTION_DEF + i;
+}
 
 static inline bool in_str(const char c, const char* s) {
   if (!c) return true;
@@ -93,7 +103,7 @@ Scanned scan(char** streamp) {
       _IS_PARSING_STRING = true;
     default: {
       char* tokinit = *streamp - !_IS_PARSING_STRING;
-      _INDEX--;     
+      _INDEX--; 
       char* tokcont = tokinit;
 
       bytepair parsed = until(&tokcont, " ,\t\n()[]{}\"");
@@ -121,8 +131,8 @@ Scanned scan(char** streamp) {
           STR:
           parsed.right?
             NUM:
-            IDEN,
-        tokcont - tokinit - 1,
+            selectfromidents(tokinit),
+        tokcont - tokinit,
         tokinit
       );
     }

@@ -6,11 +6,13 @@ typedef enum TokenType {
   OPEN_BRACKET, CLOSE_BRACKET, // Basic syntax structuring
   OPEN_CURLY, CLOSE_CURLY,     //
 
-  IDEN, NUM, STR,              // Literals
+  STR, NUM, IDEN,              // Literals 
+
+  // !! IDENTIFIER MUST BE BEFORE FUNCTION_DEF !!
 
   FUNCTION_DEF,                //
   IF, MATCH,                   // Keywords
-  FOR, LOOP,                   //
+  FOR,                         //
 
   EOF                          // End Of File
 } TokenType;
