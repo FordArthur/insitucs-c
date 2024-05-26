@@ -1,20 +1,25 @@
+#include <ctype.h>
 #include <stdbool.h>
 #include "vec.h"
 #include "scanner.h"
 #include <stdio.h>
 
 #define EOFval 26
-#define mktok(t, l, token) (Scanned) { .is_ok = true, .line = _LINE, .index = _INDEX, .res.tok.type = t, .res.tok.length = l, .res.tok.tok = token }
-#define throwerr(e) (Scanned) { .is_ok = false, .line = _LINE, .index = _INDEX, .res.err = e }
+#define mktok(t, l, token) (Scanned) { .is_ok = true, .line = line, .index = index, .res.tok.type = t, .res.tok.length = l, .res.tok.tok = token }
+#define throwerr(e) (Scanned) { .is_ok = false, .line = line, .index = index, .res.err = e }
+
+typedef struct BytePair {
+  unsigned char left;
+  unsigned char right;
+} bytepair;
 
 static unsigned int _LINE = 0;  //
 static unsigned int _INDEX = 0; // Will keep track of the position as we are parsing
 
-static bool _PARSING_STRING = false;
 static bool _IS_PEAKED_TOKEN = false;
 static Scanned _PEAKED_TOKEN;
 
-inline static bool in_str(const char c, const char* s) {
+static inline bool in_str(const char c, const char* s) {
   if (!c) return true;
   unsigned int i = 0;
   for (; s[i] && s[i] != c; i++);
@@ -36,13 +41,36 @@ static inline char consume(char** stream) {
   return consumed;
 }
 
+static inline bytepair until(char** streamp, const char* delims) {
+  char consumed = consume(streamp);
+  bool numdot = false;
+  bool _IS_NUMBER = true;
+
+  for (; consumed && !in_str(consumed, delims); consumed = consume(streamp))
+    if (_IS_NUMBER && !isdigit(consumed) || numdot && !(numdot = true))
+      _IS_NUMBER = false;
+
+  return (bytepair) {
+    .left = consumed,
+    .right = _IS_NUMBER
+  };
+}
+
 Scanned scan(char** streamp) {
+  bool _IS_PARSING_STRING = false;
   if (_IS_PEAKED_TOKEN) {
     _IS_PEAKED_TOKEN = false;
     return _PEAKED_TOKEN;
   }
   char tokchar;
+  unsigned int line = _LINE;
+  unsigned int index = _INDEX;
+
   switch ((tokchar = consume(streamp))) {
+    case ' ':
+    case '\t':
+    case '\n':
+      return scan(streamp);
     case '(':
       return mktok(OPEN_PAREN, 1, 0);
       break;
@@ -62,40 +90,44 @@ Scanned scan(char** streamp) {
       return mktok(CLOSE_CURLY, 1, 0);
       break;
     case '"':
-    case '\'':
-      _PARSING_STRING = true;
+      _IS_PARSING_STRING = true;
     default: {
-      char* tokinit = *streamp - !_PARSING_STRING;
-      if (tokchar <= '9' && tokchar >= '0' || tokchar == '.') {// Check if number literal
-        bool is_final;
-        while (!(is_final = in_str(consume(streamp), " \t\n,")) && tokchar <= '9' && tokchar >= '0');
-        if (is_final) {
-          *(*streamp - 1) = '\0';
-          return mktok(NUM, *streamp - tokinit, tokinit);
-        }
-        else 
-        goto iden_like;
-      } else if (_PARSING_STRING) {
-        while (!in_str(consume(streamp), "\'\""));
-        if (!*streamp) return throwerr("Unmatched quotation");
-        *(*streamp - 1) = '\0';
-        _PARSING_STRING = false;
-        return mktok(STR, *streamp - tokinit, tokinit);
+      char* tokinit = *streamp - !_IS_PARSING_STRING;
+      _INDEX--;     
+      char* tokcont = tokinit;
+
+      bytepair parsed = until(&tokcont, " ,\t\n()[]{}\"");
+      tokchar = parsed.left;
+
+      if (_IS_PARSING_STRING && tokchar != '"')
+        return throwerr("Unmatched quotation mark");
+
+      if (!_IS_PARSING_STRING && tokchar && in_str(tokchar, "()[]{}\"")) { // Sensitive chars, if we were to zero them out right away we would miss tokens
+        char* senstream = tokcont - 1;
+        _INDEX--;
+
+        _PEAKED_TOKEN = scan(&senstream);
+        _IS_PEAKED_TOKEN = true;
+
+        tokcont[-(tokchar != '\0')] = '\0';
+        *streamp = senstream;
       } else {
-      iden_like:
-        while (!in_str(tokchar = consume(streamp), " \t\n,\"\'()[]{}"));
-        if (in_str(tokchar, "()[]{}\"\'")) { // Sensitive chars, if we were to zero them out right away we would miss tokens
-          char* senstream = *streamp - 1;
-          _PEAKED_TOKEN = scan(&senstream);
-          _IS_PEAKED_TOKEN = true;
-        }
-        *(*streamp - (tokchar != '\0')) = '\0';
-        return mktok(IDEN, *streamp - tokinit - (tokchar != '\0'), tokinit); // For now...
+        tokcont[-(tokchar != '\0')] = '\0';
+        *streamp = tokcont;
       }
+
+      return mktok(
+        _IS_PARSING_STRING?
+          STR:
+          parsed.right?
+            NUM:
+            IDEN,
+        tokcont - tokinit - 1,
+        tokinit
+      );
     }
   }
 }
-
 Scanned* scanner(char* stream) {
   Scanned* tokvec = new_vector_with_capacity(Scanned, 64);
   char tokchar;
@@ -125,5 +157,8 @@ int main(int argc, char *argv[]) {
   // ----------------------------------------------
   Scanned* expvec = scanner(exp); 
   for_each(expvec)
-    printf("%d@(%d, %d --- %d): %s\n", expvec[i].res.tok.type, expvec[i].index, expvec[i].line, expvec[i].res.tok.length, expvec[i].res.tok.tok); 
+    if (expvec[i].is_ok)
+      printf("%d@(%d, %d --- %d): %s\n", expvec[i].res.tok.type, expvec[i].index, expvec[i].line, expvec[i].res.tok.length, expvec[i].res.tok.tok); 
+    else
+      printf("!!@(%d, %d): %s\n", expvec[i].index, expvec[i].line, expvec[i].res.err);
 }
