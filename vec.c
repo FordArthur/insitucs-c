@@ -19,8 +19,6 @@ void* _new_vector(unsigned int obj_size, unsigned int capacity) {
 
 
 vect_h* _get_header(void* vect) {
-  vect_h* header = vect;
-  --header;
-  return header;
+  return ((vect_h*) vect) - 1;
 }
 

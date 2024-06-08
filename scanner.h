@@ -1,10 +1,16 @@
 #ifndef INSITUCS_SCANNER_HEADER
 #define INSITUCS_SCANNER_HEADER
 
+#include <string.h>
+#include <ctype.h>
+#include <stdbool.h>
+#include "vec.h"
+
 typedef enum TokenType {
   OPEN_PAREN, CLOSE_PAREN,     //
   OPEN_BRACKET, CLOSE_BRACKET, // Basic syntax structuring
   OPEN_CURLY, CLOSE_CURLY,     //
+  AT, HASHTAG, PERCENT,        //
 
   STR, NUM, IDEN,              // Literals 
 
@@ -34,6 +40,13 @@ typedef struct Scanned {
   } res;
 } Scanned;
 
-Scanned* scanner(char* stream);
+typedef struct Tokens {
+  bool is_correct_stream;
+  union {
+    Scanned* stream;
+    Scanned** errs;
+  };
+} Tokens;
 
+Tokens scanner(char* stream);
 #endif // !INSITUCS_SCANNER_HEADER

@@ -1,9 +1,5 @@
-#include <string.h>
-#include <ctype.h>
-#include <stdbool.h>
-#include "vec.h"
 #include "scanner.h"
-#include <stdio.h>
+#include "vec.h"
 #define nsyms 4
 
 #define mktok(t, l, token) (Scanned) { .is_ok = true, .line = line, .index = index, .res.tok.type = t, .res.tok.length = l, .res.tok.tok = token }
@@ -20,9 +16,12 @@ static unsigned int _INDEX = 0; // Will keep track of the position as we are par
 static bool _IS_PEAKED_TOKEN = false;
 static Scanned _PEAKED_TOKEN;
 
+static bool _HAS_ERRORS = false;
+static bool _IS_IN_ERROR = false;
+
 static const char symtablelike[nsyms][9] = {"function", "if", "match", "for"};
 
-// This really should be implemented as a hashtable but whatever
+// This really should be implemented as a hashtable/trie but whatever
 static inline TokenType selectfromidents(const char* potsym) {
   int i = nsyms - 1;
   for (; i >= 0 && strcmp(potsym, symtablelike[i]); i--);
@@ -99,6 +98,15 @@ Scanned scan(char** streamp) {
     case '}':
       return mktok(CLOSE_CURLY, 1, 0);
       break;
+    case '@':
+      return mktok(AT, 1, 0);
+      break;
+    case '#':
+      return mktok(HASHTAG, 1, 0);
+      break;
+    case '%':
+      return mktok(PERCENT, 1, 0);
+      break;
     case '"':
       _IS_PARSING_STRING = true;
     default: {
@@ -109,8 +117,10 @@ Scanned scan(char** streamp) {
       bytepair parsed = until(&tokcont, " ,\t\n()[]{}\"");
       tokchar = parsed.left;
 
-      if (_IS_PARSING_STRING && tokchar != '"')
+      if (_IS_PARSING_STRING && tokchar != '"') {
+        _HAS_ERRORS = _IS_IN_ERROR = true;
         return throwerr("Unmatched quotation mark");
+      }
 
       if (!_IS_PARSING_STRING && tokchar && in_str(tokchar, "()[]{}\"")) { // Sensitive chars, if we were to zero them out right away we would miss tokens
         char* senstream = tokcont - 1;
@@ -138,37 +148,31 @@ Scanned scan(char** streamp) {
     }
   }
 }
-Scanned* scanner(char* stream) {
+
+Tokens scanner(char* stream) {
   Scanned* tokvec = new_vector_with_capacity(Scanned, 64);
-  char tokchar;
+  Scanned** errs = new_vector_with_capacity(Scanned*, 8);
 
   while (*stream || _IS_PEAKED_TOKEN) {
-    Scanned ptok = scan(&stream);
-    push(
-      tokvec,
-      ptok
-    );
+    push(tokvec, scan(&stream));
+    if (_IS_IN_ERROR) {
+      _IS_IN_ERROR = false;
+      push(errs, tokvec + sizeof_vector(tokvec) - 1);
+    }
   }
   
-  return tokvec;
-}
+  if (_HAS_ERRORS) {
+    return (Tokens) {
+      .is_correct_stream = false,
+      .errs = errs,
+    };
+  } else {
+    unsigned int line = _LINE, index = _INDEX;
+    push(tokvec, mktok(EOF, 1, 0));
 
-int main(int argc, char *argv[]) {
-  // ----------------------------------------------
-  if (argc == 1) {
-    printf("Provide at least one expression\n");
-    return 0;
+    return (Tokens) {
+      .is_correct_stream = true,
+      .stream = tokvec,
+    };
   }
-
-  for (int i = 2; i < argc; i++)
-    argv[i][-1] = ' ';
-
-  char* exp = argv[1];
-  // ----------------------------------------------
-  Scanned* expvec = scanner(exp); 
-  for_each(expvec)
-    if (expvec[i].is_ok)
-      printf("%d@(%d, %d --- %d): %s\n", expvec[i].res.tok.type, expvec[i].index, expvec[i].line, expvec[i].res.tok.length, expvec[i].res.tok.tok); 
-    else
-      printf("!!@(%d, %d): %s\n", expvec[i].index, expvec[i].line, expvec[i].res.err);
 }
