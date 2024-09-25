@@ -2,6 +2,7 @@
 #define INSITUCS_PARSER_HEADER
 
 #include "vec.h"
+#include "trie.h"
 #include "stdbool.h"
 #include <ctype.h>
 

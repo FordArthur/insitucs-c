@@ -103,11 +103,11 @@ int main(int argc, char *argv[]) {
     printf("\n");
   }
 #endif
+  /*
   TypecheckResult checked = typecheck(stream.tstream, parsed.ast, parsed.errors);
   if (!checked.passes) {
     return 1;
   }
-  /*
   compiler((AST) checked.blocks, NULL);
   */
 }

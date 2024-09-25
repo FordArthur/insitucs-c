@@ -1,5 +1,5 @@
 #include "parser.h"
-#include "vec.h"
+#include "trie.h"
 
 static inline char consume_char(ParseableStream* stream) {
   return stream->consume_char(&stream->stream);
@@ -39,6 +39,7 @@ static inline bool is_quote(char c) {
 
 static inline int constant_true(int _) { return true; }
 
+static TrieNode* atom_trie;
 static bool is_correct_ast = true;
 static Error* errors;
 
@@ -132,6 +133,7 @@ static Atom parse_expression(ParseableStream* stream) {
       atom_t = REAL;
       validate_atom = &isdigit;
     default: parse_atom: {
+      TrieNode* trie_pos = step_up(curchar, atom_trie);
       void* ident_start = copy_stream_offset(*stream, 0);
       curchar = consume_char_ahead(stream);
       while (curchar && !end_atom(curchar)) {
@@ -144,13 +146,14 @@ static Atom parse_expression(ParseableStream* stream) {
           is_correct_ast = false;
           return (Atom) {};
         }
+        if (trie_pos) trie_pos = step_up(curchar, trie_pos);
         curchar = consume_char_ahead(stream);
       }
       unsigned long len = distance_between(*stream, ident_start);
       if (atom_t == STRING) consume_char(stream);
       while (curchar && isspace(curchar)) curchar = consume_char_ahead(stream);
       return (Atom) {
-        .atom_t = atom_t,
+        .atom_t = trie_pos && trie_pos->is_terminal ? trie_pos->value : atom_t,
         .atom.src = ident_start,
         .atom.len = len
       };
@@ -161,6 +164,15 @@ static Atom parse_expression(ParseableStream* stream) {
 ParseResult parser(ParseableStream stream) {
   _Static_assert(sizeof(AST) == sizeof(Error*), "AST and Error* must be of the same size");
   // idk how to check that stream and error are in the same spot on the struct, if you do pls PR
+  
+  atom_trie = create_node(0, -1);
+  insert_trie("function", FUNCTION, atom_trie);
+  insert_trie("let"     , LET     , atom_trie);
+  insert_trie(":"       , LET_TYPE, atom_trie);
+  insert_trie("char"    , TYPE    , atom_trie);
+  insert_trie("string"  , TYPE    , atom_trie);
+  insert_trie("int"     , TYPE    , atom_trie);
+  insert_trie("real"    , TYPE    , atom_trie);
 
   AST ast = new_vector_with_capacity(*ast, 64);
   errors = new_vector_with_capacity(*errors, 16);
