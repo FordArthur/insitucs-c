@@ -7,7 +7,7 @@
 
 static bool passes = true;
 
-Type typechecker(const TypedStream tstream, Atom expr) {
+static inline Type typechecker(const TypedStream tstream, Atom expr) {
 
   switch (expr.atom_t) {
     case EXPR:

@@ -3,25 +3,25 @@
 
 #include "vec.h"
 #include "stdbool.h"
+#include <ctype.h>
 
 typedef enum AtomT {
   EXPR,
-  /* volatile position */
-  CHAR, INT, REAL, STRING,
+  CHAR, INT, REAL, STRING, /* volatile position */  
   IDENT, TYPE,
-  FUNCTION, LET, LET_TYPE
+  FUNCTION, LET, LET_TYPE,
 } AtomT;
 
-typedef struct Stream {
+typedef struct ParseableStream {
   void* stream;
   char (*consume_char)(void**);
+  char (*consume_char_ahead)(void**);
   char (*get_char)(void*);
   char (*look_around)(void*, long);
   void (*move_stream)(void**, long);
   void* (*copy_stream_offset)(void*, long);
   unsigned long (*distance_between)(void*, void*);
-  AtomT (*recognize_atom)(void*, unsigned long);
-} Stream;
+} ParseableStream;
 
 typedef struct Token {
   void* src;
@@ -38,8 +38,19 @@ typedef struct Atom {
 } Atom;
 
 typedef struct Error {
-
+  Atom ill_atom;
+  char* message;
 } Error;
+
+typedef struct ErrorStream {
+  void (*print_error)(Error);
+} ErrorStream;
+
+#ifdef DEBUG
+typedef struct PrintableStream {
+  void (*print_stream)(Atom);
+} PrintableStream;
+#endif
 
 typedef Atom* Expression;
 
@@ -47,12 +58,10 @@ typedef Expression AST;
 
 typedef struct ParseResult {
   bool is_correct_ast;
-  union {
-    Error* errors;
-    AST ast;
-  };
+  Error* errors;
+  AST ast;
 } ParseResult;
 
-ParseResult parser(Stream stream);
+ParseResult parser(ParseableStream stream);
 
 #endif  // INSITUCS_PARSER_HEADER

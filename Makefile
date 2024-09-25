@@ -1,7 +1,7 @@
 CC := gcc
 CCFLAGS := -Wall
 LDFLAGS :=
-EXEC_FILE := chompailer
+EXEC_FILE := ics
 
 SRC_LOCATION := ./src
 BUILD_LOCATION := ./build
@@ -21,10 +21,10 @@ test: build
 release: CCFLAGS += -O2 -mavx2 -march=native
 release: build
 
-gdb: CCFLAGS += -g -ggdb3
+gdb: CCFLAGS += -g -ggdb3 -D DEBUG
 gdb: build
 
-debug: CCFLAGS += -g -ggdb3 -fsanitize=address -fno-omit-frame-pointer -static-libstdc++ -lrt
+debug: CCFLAGS += -g -ggdb3 -fsanitize=address -fno-omit-frame-pointer -static-libstdc++ -lrt -D DEBUG
 debug: LDFLAGS += -fsanitize=address -static-libasan
 debug: build
 
