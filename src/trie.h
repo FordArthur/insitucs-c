@@ -25,7 +25,7 @@ TrieNode* create_node(char key, unsigned long value);
 
 bool insert_trie(char* pattern, unsigned long final_value, TrieNode* trie);
 
-unsigned long follow_pattern_with_default(char* pattern, TrieNode* trie, unsigned long _default) __attribute__ ((pure));
+unsigned long find_pattern_with_default(char* pattern, TrieNode* trie, unsigned long _default) __attribute__ ((pure));
 
 TrieNode* step_up(char step, TrieNode* trie);
 

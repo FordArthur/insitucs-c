@@ -6,6 +6,14 @@
 #define Type_Assignment(at) Strict(expr.expr[at].atom_t == EXPR && expr.expr[at].expr[0].atom_t == LET_TYPE && expr.expr[at].expr[1].atom_t == IDENT && expr.expr[at].expr[2].atom_t == TYPE, "Expected type assignment");
 
 static bool passes = true;
+Error* errors;
+
+static inline bool type_eq_up_to_curry(Type t1, Type t2) {
+  bool eq_pred = true;
+  for (int_fast8_t pt1 = t1 & 15, pt2 = t2 & 15; t1 && t2; t1 = t1 << 4, t2 = t2 << 4, pt1 = t1 & 15, pt2 = t2 & 15)
+    eq_pred &= pt1 == ANY || pt2 == ANY? true : pt1 == pt2;
+  return eq_pred;
+}
 
 static inline Type typechecker(const TypedStream tstream, Atom expr) {
 
@@ -30,15 +38,14 @@ static inline Type typechecker(const TypedStream tstream, Atom expr) {
           for_each(j, expr.expr) {
             body_type = typechecker(tstream, expr.expr[i + j]);
           }
-          Strict(body_type == ret_type, "Type mismatch between declared return type and return expression");
-          // TODO: make equality account for "ANY"
+          Strict(type_eq_up_to_curry(body_type, ret_type), "Type mismatch between declared return type and return expression");
           insert_context(expr.expr[1].expr[1].atom, func_type);
         case LET:
           for_each(i, expr.expr) {
             Type_Assignment(i + 1);
             const Type var_type = tstream.read_type(expr.expr[i + 1].expr[2].atom);
             const Type expr_type = typechecker(tstream, expr.expr[i + 2]);
-            Strict(var_type == expr_type, "Type mismatch between declared var type and expression");
+            Strict(type_eq_up_to_curry(var_type, expr_type), "Type mismatch between declared var type and expression");
             insert_context(expr.expr[i + 1].expr[1].atom, var_type);
             i++;
           }
@@ -69,23 +76,37 @@ static inline Type typechecker(const TypedStream tstream, Atom expr) {
       Type t = lookup_context(expr.atom);
       if (!t) {
         passes = false;
-        // err
+        push(errors, ((Error) {
+          .message = "Variable not found"
+        }));
         return ANY;
       }
       return t;
     }
       break;
-    case LET_TYPE: {
+    case LET_TYPE:
       passes = false;
-      // err: Cannot simply type assign
+      push(errors, ((Error) {
+        .message = "Type assigns must be inside their apropiate definitions"
+      }));
       return ANY;
-    }
+    case FUNCTION:
+      passes = false;
+      push(errors, ((Error) {
+        .message = "Function definition must be inside expression"
+      }))
+    case LET:
+      passes = false;
+      push(errors, ((Error) {
+        .message = "Variable definition must be inside expression"
+      }))
     default:
       return (Type) expr.atom_t;
   }
 }
 
 TypecheckResult typecheck(TypedStream tstream, AST ast, Error* error_buf) {
+  errors = error_buf;
   for_each(i, ast) typechecker(tstream, ast[i]);
 
   return (TypecheckResult) {

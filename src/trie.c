@@ -39,7 +39,7 @@ bool insert_trie(char* pattern, unsigned long final_value, TrieNode* trie) {
 }
 
 // Returns the key or -1 if it didn't arrive to a terminal node
-unsigned long follow_pattern_with_default(char* pattern, TrieNode* trie, unsigned long _default) {
+unsigned long find_pattern_with_default(char* pattern, TrieNode* trie, unsigned long _default) {
   TrieNode* node = trie;
   char* subpattern = pattern;
   for (; *subpattern; subpattern++) {
@@ -53,5 +53,5 @@ unsigned long follow_pattern_with_default(char* pattern, TrieNode* trie, unsigne
 TrieNode* step_up(char step, TrieNode* trie) {
   if (TRIE_ASCII_OFFSET > step || step > TRIE_ASCII_OFFSET + TRIE_LOOK_UP_SIZE)
     return NULL;
-  return trie->children[step];
+  return trie->children[step - TRIE_ASCII_OFFSET];
 }
