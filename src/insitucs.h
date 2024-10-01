@@ -10,7 +10,6 @@
 typedef struct Stream {
   ParseableStream pstream;
   ErrorStream estream;
-  TypedStream tstream;
 #ifdef DEBUG
   PrintableStream rstream;
 #endif

@@ -166,13 +166,19 @@ ParseResult parser(ParseableStream stream) {
   // idk how to check that stream and error are in the same spot on the struct, if you do pls PR
   
   atom_trie = create_node(0, -1);
-  insert_trie("function", FUNCTION, atom_trie);
-  insert_trie("let"     , LET     , atom_trie);
-  insert_trie(":"       , LET_TYPE, atom_trie);
-  insert_trie("char"    , TYPE    , atom_trie);
-  insert_trie("string"  , TYPE    , atom_trie);
-  insert_trie("int"     , TYPE    , atom_trie);
-  insert_trie("real"    , TYPE    , atom_trie);
+  insert_trie("function", FUNCTION , atom_trie);
+  insert_trie("let"     , LET      , atom_trie);
+  insert_trie(":"       , LET_TYPE , atom_trie);
+  insert_trie("char"    , CHAR_ST  , atom_trie);
+  insert_trie("string"  , STRING_ST, atom_trie);
+  insert_trie("int"     , INT_ST   , atom_trie);
+  insert_trie("real"    , REAL_ST  , atom_trie);
+
+  // since the parser switch breaks these, we fix them here
+  // this however is only temporal becasue we also would want
+  // to support arbitrary symbols
+  insert_trie("+"       , IDENT    , atom_trie);
+  insert_trie("-"       , IDENT    , atom_trie);
 
   AST ast = new_vector_with_capacity(*ast, 64);
   errors = new_vector_with_capacity(*errors, 16);

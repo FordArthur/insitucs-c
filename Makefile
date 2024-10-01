@@ -25,7 +25,7 @@ gdb: CCFLAGS += -g -ggdb3 -D DEBUG
 gdb: build
 
 debug: CCFLAGS += -g -ggdb3 -fsanitize=address -fno-omit-frame-pointer -static-libstdc++ -lrt -D DEBUG
-debug: LDFLAGS += -fsanitize=address -static-libasan
+debug: LDFLAGS += -fsanitize=address
 debug: build
 
 $(BUILD_LOCATION)/%.o: $(SRC_LOCATION)/%.c

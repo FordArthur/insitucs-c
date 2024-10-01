@@ -8,9 +8,9 @@ static _Bucket table[TABLE_SIZE] = {0};
 // from http://www.cse.yorku.ca/~oz/hash.html
 static inline __attribute_pure__ unsigned long hash(const Token name) {
   unsigned long hash_number = 5381;
-  char c;
+  char c = ((char*)name.src)[0];
 
-  for (unsigned long i = 0; i < name.len; c = ((char*)name.src)[i])
+  for (unsigned long i = 0; i < name.len; c = ((char*)name.src)[i], i++)
     hash_number = ((hash_number << 5) + hash_number) + c;
 
   return hash_number;

@@ -9,8 +9,9 @@
 typedef enum AtomT {
   EXPR,
   CHAR, INT, REAL, STRING, /* volatile position */  
-  IDENT, TYPE,
+  IDENT,
   FUNCTION, LET, LET_TYPE,
+  CHAR_ST, INT_ST, REAL_ST, STRING_ST /* volatile position */
 } AtomT;
 
 typedef struct ParseableStream {

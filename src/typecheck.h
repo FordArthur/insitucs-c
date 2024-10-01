@@ -5,18 +5,28 @@
 #include "context.h"
 #include "parser.h"
 
-typedef struct TypedStream {
-  Type (*read_type)(Token);
-} TypedStream;
-
 typedef enum BlockT {
   FN,
   VAR,
-  BLOCK /* is meant to map to something like "EXPR" */
+  BLOCK /* is meant to map EXPR */
 } BlockT;
 
+/*
+ * What i want is for sizeof(Block) == sizeof(Atom)
+ * since if this is the case we can reutilize the allocated
+ * vectors and dramatically save on memory usage
+ *
+ * Therefore, the structure of blocks is defined implicitly:
+ * FN: [name, [(: var type) ...] [(expressions)]]
+ * VAR: [(: var type), (expression), (: var' type'), (expression') ...]
+ * BLOCK: (expression)
+ */
 typedef struct Block {
   BlockT block_t;
+  union {
+    Token atom;
+    struct Atom* expr;
+  };
 } Blocks;
 
 typedef struct TypecheckResult {
@@ -25,6 +35,6 @@ typedef struct TypecheckResult {
   Blocks* blocks;
 } TypecheckResult;
 
-TypecheckResult typecheck(TypedStream tstream, AST ast, Error* error_buf);
+TypecheckResult typecheck(AST ast, Error* error_buf);
 
 #endif // !INSITUCS_TYPECHECK_HEADER
