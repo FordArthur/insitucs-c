@@ -13,7 +13,7 @@ static inline __attribute_pure__ unsigned long hash(const Token name) {
   for (unsigned long i = 0; i < name.len; c = ((char*)name.src)[i], i++)
     hash_number = ((hash_number << 5) + hash_number) + c;
 
-  return hash_number;
+  return hash_number % TABLE_SIZE;
 }
 
 static inline void ordered_remove(_Bucket bucket, Token name) {
@@ -21,7 +21,7 @@ static inline void ordered_remove(_Bucket bucket, Token name) {
 }
 
 void insert_context(Token name, Type type) {
-  const unsigned long key = hash(name) % TABLE_SIZE;
+  const unsigned long key = hash(name);
 
   if (!table[key]) {
     table[key] = new_vector(_Bucket);
@@ -31,7 +31,7 @@ void insert_context(Token name, Type type) {
 }
 
 void delete_context(Token name) {
-  const unsigned long key = hash(name) % TABLE_SIZE;
+  const unsigned long key = hash(name);
 
   if (!table[key]) return;
 
@@ -39,7 +39,7 @@ void delete_context(Token name) {
 }
 
 Type lookup_context(Token name) {
-  const unsigned long key = hash(name) % TABLE_SIZE;
+  const unsigned long key = hash(name);
 
   if (!table[key]) return 0;
 
