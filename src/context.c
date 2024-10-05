@@ -20,14 +20,14 @@ static inline void ordered_remove(_Bucket bucket, Token name) {
 
 }
 
-void insert_context(Token name, Type type) {
+void insert_context(Token name, Type type, uint_fast64_t counter) {
   const unsigned long key = hash(name);
 
   if (!table[key]) {
     table[key] = new_vector(_Bucket);
   }
 
-  push(table[key], ((_Entry) { .name = name, .type = type }));
+  push(table[key], ((_Entry) { .name = name, .type = type, .counter = counter }));
 }
 
 void delete_context(Token name) {
@@ -38,16 +38,15 @@ void delete_context(Token name) {
   ordered_remove(table[key], name);
 }
 
-Type lookup_context(Token name) {
+CtxVal lookup_context(Token name) {
   const unsigned long key = hash(name);
 
-  if (!table[key]) return 0;
+  if (!table[key]) return (CtxVal) {};
 
   const vect_h* bucket_h = _get_header(table[key]);
 
-  for (_Entry* bucket = table[key]; bucket < bucket_h->size*bucket_h->obj_size + table[key]; bucket++) {
-    if (strncmp(bucket->name.src, name.src, name.len) == 0) return bucket->type;
-  }
+  for (_Entry* bucket = table[key]; bucket < bucket_h->size*bucket_h->obj_size + table[key]; bucket++)
+    if (strncmp(bucket->name.src, name.src, name.len) == 0) return (CtxVal) { bucket->type, bucket->counter };
 
-  return 0;
+  return (CtxVal) {};
 }

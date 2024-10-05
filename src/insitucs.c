@@ -105,6 +105,9 @@ int main(int argc, char *argv[]) {
 #endif
   TypecheckResult checked = typecheck(parsed.ast, parsed.errors);
   if (!checked.passes) {
+    for_each(i, checked.errors) {
+      stream.estream.print_error(checked.errors[i]);
+    }
     return 1;
   }
   /*

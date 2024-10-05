@@ -6,6 +6,7 @@
 #include "parser.h"
 #include "vec.h"
 #include <stdint.h>
+#include <stdint.h>
 #include <limits.h>
 #include <string.h>
 
@@ -23,15 +24,21 @@ typedef uint_fast64_t Type;
 typedef struct _Entry {
   Token name;
   Type type;
+  uint_fast64_t counter;
 } _Entry;
 
 typedef _Entry* _Bucket;
 
-void insert_context(Token name, Type type);
+typedef struct CtxVal {
+  Type type;
+  uint_fast64_t counter;
+} CtxVal;
+
+void insert_context(Token name, Type type, uint_fast64_t counter);
 
 void delete_context(Token name);
 
-Type lookup_context(Token name);
+CtxVal lookup_context(Token name);
 
 
 #endif // !INSITUCS_STRINGMAP_HEADER
