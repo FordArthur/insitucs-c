@@ -1,4 +1,5 @@
 #include "compiler.h"
+#include "typecheck.h"
 #include "vec.h"
 #include <stdint.h>
 #include <stdio.h>
@@ -11,29 +12,29 @@ static inline void fprint_atom(FILE* file, Atom atom) {
   }
 }
 
-StackOffset compile(Atom block, FILE* file) {
-  if (block.atom_t == EXPR) {
-    switch (block.expr[0].atom_t) {
-      case FUNCTION:
-        fprint_atom(file, block.expr[1]);
-        fprintf(file, ":\n");
-        break;
-      case LET:
-        break;
-      case EXPR:
-        for (uint_fast64_t i = 1; i < _get_header(block.expr)->size; i++) {
-          fprintf(file, "push [rbp + %lu]\n", compile(block.expr[i], file));
-        }
-        fprintf(file, "call ");
-        fprint_atom(file, block.expr[0]);
-        fprintf(file, "\n");
-        break;
-      default:
-        __builtin_unreachable();
-    }
+static inline void fspush(FILE* file, const char* rep) {
+  fprintf(file, "push %s\n", rep);
+}
+
+StackOffset compile(Block block, FILE* file) {
+  if (block.block_t >= _)
+    return 8*(block.block_t - _);
+
+  switch (block.block_t) {
+    case FN:
+
+    case VAR:
+    case EVAL:
+    case LIT_I8:
+    case LIT_I64:
+    case LIT_F64:
+    case LIT_I8_PTR:
+    default:
+      break;
   }
 }
 
-void compiler(AST stream, FILE* file) {
+void compiler(Blocks stream, FILE* file) {
   for_each(i, stream) compile(stream[i], file);
 }
+

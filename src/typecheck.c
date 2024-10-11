@@ -22,17 +22,17 @@ static uint_fast8_t scope_top = 0;
 static uint_fast8_t scope = 0;
 static uint_fast8_t scope_table[255] = {0};
 
-static inline AsmTypeT to_AsmT(Type t) {
+static inline __attribute_const__ AsmTypeT to_AsmT(Type t) {
   return t > ANY ? CALLABLE_PTR : t;
 }
 
-static inline bool type_eq_up_to_curry(Type t1, Type t2) {
+static inline __attribute_const__ Type type_eq_up_to_curry (Type t1, Type t2) {
   for (int_fast8_t pt1 = t1 & 15, pt2 = t2 & 15; t1 && t2; t1 = t1 >> 4, t2 = t2 >> 4, pt1 = t1 & 15, pt2 = t2 & 15)
     if (!(pt1 == ANY || pt2 == ANY? true : pt1 == pt2)) return false;
   return true;
 }
 
-static inline bool type_eq(Type t1, Type t2) {
+static inline __attribute_const__ bool type_eq(Type t1, Type t2) {
   for (int_fast8_t pt1 = t1 & 15, pt2 = t2 & 15; t1 && t2; t1 = t1 >> 4, t2 = t2 >> 4, pt1 = t1 & 15, pt2 = t2 & 15)
     if (!(pt1 == ANY || pt2 == ANY? true : pt1 == pt2)) return false;
   return t1 == t2; // becasue we stop whenever t1 or t2 are 0, this will be true if and only if they are both 0
@@ -50,17 +50,18 @@ static inline Type typechecker(Atom* expr) {
           for (; i <= 16 && expr->expr[i].atom_t == EXPR && expr->expr[i].atom_t == LET_TYPE; i++) {
             Type_Assignment(i);
             Type decl_arg_type = to_type(expr->expr[i].expr[2]);
-            func_type |= decl_arg_type << (4*i);
             // If this is confusing, recall that the maximum a type can be is 15 (the ANY type), so they fit in 4 bit chunks
             // thus, 8 bytes / 4 bits = 64 bits / 4 bits = 16 types
             // as we reserve a spot for the return type, this leaves us with 15 arguments
             // that we fit in a single 8 byte long by upping each value 4 bits times their position
+            func_type |= decl_arg_type << (4*i);
             insert_context(expr->expr[i].expr[1].atom, decl_arg_type, scope_top);
             in_scope[scope_top] = expr->expr[i].expr[1].atom;
             scope_table[scope_top++] = scope + 1;
           }
           StrictGoto(i <= 16, expr.expr[i], "Impossible number of arguments", cleanup);
-          insert_context(expr->expr[1].expr[1].atom, func_type, 0);
+          // ARR - _ because when we find this function in the context, we add _ to it, yielding just ARR indicating this is a function
+          insert_context(expr->expr[1].expr[1].atom, func_type, ARR - _);
           in_scope[scope_top] = expr->expr[1].expr[1].atom;
           scope_table[scope_top++] = scope;
           scope++;
@@ -78,7 +79,7 @@ static inline Type typechecker(Atom* expr) {
           *(Block*)expr = (Block) {
             .block_t = FN,
             .fn_info.arg_len = i,
-            .expr = expr->expr
+            .expr = (Block*) expr->expr
           };
           return ANY;
         case LET:
@@ -104,8 +105,10 @@ static inline Type typechecker(Atom* expr) {
           }
           Strict(i <= 16, expr->expr[i], "Impossible number of arguments");
           Strict(type_eq_up_to_curry(func_type >> 4, args_type), expr->expr[0], "Function type does not match it's arguments");
-          const Type app_type = func_type << (4*i);
-          *(Block*)expr->expr = (Block) {
+          const uint_fast8_t many_args = 16 - __builtin_clzl(func_type) / 4 - i + 1;
+          printf("\n%d\n", many_args);
+          const Type app_type = func_type & ((1 << (4*many_args)) - 1);
+          *(Block*)expr = (Block) {
             .block_t = EVAL,
             .asm_t = to_AsmT(app_type),
             // Yes, this could be an expression also
@@ -130,7 +133,7 @@ static inline Type typechecker(Atom* expr) {
         }));
         return ANY;
       }
-      *(Block*)expr->expr = (Block) {
+      *(Block*)expr = (Block) {
         .block_t = val.counter + _,
         .asm_t = to_AsmT(t),
         .atom = expr->atom
@@ -155,6 +158,7 @@ static inline Type typechecker(Atom* expr) {
         .message = "Variable definition must be inside expression"
       }))
     default:
+      // This is also automatically a block
       return (Type) expr->atom_t;
   }
 }
@@ -168,13 +172,13 @@ TypecheckResult typecheck(AST ast, Error* error_buf) {
     .len = sizeof "+" - 1,
     .src = "+"
     // ANY becasue we dont support (yet) (but honestly probbably never) classes or weird types
-  }, 0b111111110010, 0);
+  }, 0b111111110010, ARR - _);
 
 #ifndef DEBUG
   for_each(i, ast) typechecker(ast + i);
 #else
   for_each(i, ast) {
-    Type t = typechecker(ast[i]);
+    Type t = typechecker(ast + i);
     printf("Deduced type: %lb\n", (unsigned long) t);
   }
 #endif

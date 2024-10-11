@@ -7,6 +7,13 @@
 #include "compiler.h"
 #include <stdio.h>
 
+#ifdef DEBUG
+typedef struct PrintableStream {
+  void (*print_ast)(Atom);
+  void (*print_block)(Block);
+} PrintableStream;
+#endif
+
 typedef struct Stream {
   ParseableStream pstream;
   ErrorStream estream;

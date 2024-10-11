@@ -6,7 +6,8 @@
 #include <stdbool.h>
 #include "vec.h"
 #include "parser.h"
+#include "typecheck.h"
 
-void compiler(AST ast, FILE* file);
+void compiler(Blocks ast, FILE* file);
 
 #endif // !INSITUCS_COMPILER_HEADER

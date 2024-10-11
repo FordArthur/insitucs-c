@@ -163,7 +163,6 @@ static Atom parse_expression(ParseableStream* stream) {
 
 ParseResult parser(ParseableStream stream) {
   _Static_assert(sizeof(AST) == sizeof(Error*), "AST and Error* must be of the same size");
-  // idk how to check that stream and error are in the same spot on the struct, if you do pls PR
   
   atom_trie = create_node(0, -1);
   insert_trie("function", FUNCTION , atom_trie);

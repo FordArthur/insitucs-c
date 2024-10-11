@@ -16,15 +16,17 @@ typedef enum UnitTypes {
   INT_T,
   REAL_T,
   STRING_T,
-  ANY = 15
+  ANY = 15,
 } UnitTypes;
+
+// CHAR_T INT_T STRING_T INT_T 0000 0000 ....
 
 typedef uint_fast64_t Type;
 
 typedef struct _Entry {
   Token name;
   Type type;
-  uint_fast64_t counter;
+  int_fast64_t counter;
 } _Entry;
 
 typedef _Entry* _Bucket;

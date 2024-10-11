@@ -1,4 +1,6 @@
 #include "insitucs.h"
+#include "vec.h"
+#include <stdio.h>
 
 char cs_consume_char(void** stream) {
   return *((*(char**)stream)++);
@@ -27,11 +29,12 @@ void* cs_copy_stream_offset(void* stream, long offset) {
   return stream + offset;
 }
 
-void cs_print_stream(Atom atm) {
+// TODO: check for post-typecheck function/var declaration
+void cs_print_ast(Atom atm) {
   if (atm.atom_t == EXPR) {
     printf("[");
     for_each (i, atm.expr) {
-      cs_print_stream(atm.expr[i]);
+      cs_print_ast(atm.expr[i]);
       printf(", ");
     }
     printf("\b\b]");
@@ -41,9 +44,37 @@ void cs_print_stream(Atom atm) {
     putchar(((char*)atm.atom.src)[i]);
 }
 
+#ifdef DEBUG
+// This looks like it defeats the purpose of blocks being isomorphic to atoms
+// but notice this is under a debug block, we only need printed the extra information
+//  whenever we are debugging
+void cs_print_block(Block block) {
+  if (block.block_t >= _) {
+    printf("%%%d", block.block_t - _);
+    return;
+  }
+  switch (block.block_t) {
+    case EVAL: printf("EVAL: ["); goto print_expr;
+    case FN:   printf("FN: [");   goto print_expr;
+    case VAR:  printf("VAR: [");
+      print_expr:
+      for_each (i, block.expr) {
+        cs_print_block(block.expr[i]);
+        printf(", ");
+      }
+      printf("\b\b]");
+      return;
+    default:
+      for (unsigned long i = 0; i < block.atom.len; i++)
+        putchar(((char*)block.atom.src)[i]);
+      return;
+  }
+}
+#endif
+
 void cs_print_error(Error err) {
   printf("Error: %s\n, in atom: ", err.message);
-  cs_print_stream(err.ill_atom);
+  cs_print_ast(err.ill_atom);
   putchar('\n');
 }
 
@@ -63,7 +94,8 @@ static Stream console_stream = (Stream) {
   },
 #ifdef DEBUG
   .rstream = (PrintableStream) {
-    .print_stream = &cs_print_stream
+    .print_ast = &cs_print_ast,
+    .print_block = &cs_print_block
   }
 #endif
 };
@@ -99,7 +131,7 @@ int main(int argc, char *argv[]) {
   }
 #ifdef DEBUG
   for_each(i, parsed.ast) {
-    stream.rstream.print_stream(parsed.ast[i]);
+    stream.rstream.print_ast(parsed.ast[i]);
     printf("\n");
   }
 #endif
@@ -110,7 +142,19 @@ int main(int argc, char *argv[]) {
     }
     return 1;
   }
+#ifdef DEBUG
+  for_each(i, checked.blocks) {
+    stream.rstream.print_block(checked.blocks[i]);
+  }
+#endif 
+  fflush(stdout);
   /*
   compiler((AST) checked.blocks, NULL);
   */
 }
+
+;;; ;;; ;;; ;;;    ;;; ;;;    ;;; ;;; ;;;     ;  ;   ;;; ;;;  ;  ; ; ;;  ;;; ;;;
+;   ;    ;  ; ;    ;   ;      ; ; ; ; ; ;    ; ; ;   ;     ; ; ; ;;; ; ; ; ; ; ;
+;;; ;;;  ;  ; ;    ;;; ;;;    ;;; ; ; ;;;    ;;; ;   ;;;   ; ;;; ; ; ; ; ;;; ; ;
+;     ;  ;  ; ;    ;     ;    ;   ; ; ;;     ; ; ;   ;   ; ; ; ; ; ; ; ; ;;  ; ;
+;;; ;;;  ;  ;;;    ;;; ;;;    ;   ;;; ; ;    ; ; ;;; ;;; ;;; ; ; ; ; ;;  ; ; ;;;

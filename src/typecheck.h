@@ -13,7 +13,7 @@
 typedef enum BlockT {
   EVAL,
   LIT_I8, LIT_I64, LIT_F64, LIT_I8_PTR,
-  _0,
+  ARR,
   FN, VAR,
   _1, _2, _3, _4,
   _ /* !! This must be always the final element !!
@@ -51,14 +51,16 @@ typedef struct Block {
   };
   union {
     Token atom;
-    struct Atom* expr;
+    struct Block* expr;
   };
 } Block;
+
+typedef Block* Blocks;
 
 typedef struct TypecheckResult {
   bool passes;
   Error* errors;
-  Block* blocks;
+  Blocks blocks;
 } TypecheckResult;
 
 TypecheckResult typecheck(AST ast, Error* error_buf);

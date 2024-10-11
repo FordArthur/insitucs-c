@@ -48,12 +48,6 @@ typedef struct ErrorStream {
   void (*print_error)(Error);
 } ErrorStream;
 
-#ifdef DEBUG
-typedef struct PrintableStream {
-  void (*print_stream)(Atom);
-} PrintableStream;
-#endif
-
 typedef Atom* Expression;
 
 typedef Expression AST;
